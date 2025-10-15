@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投标人顺序随机抽取系统</title>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1a6dba, #0d4d8c);
+            color: #fff;
+            padding: 25px 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+        }
+        
+        .input-section, .result-section {
+            flex: 1;
+            min-width: 300px;
+            padding: 20px;
+        }
+        
+        .input-section {
+            border-right: 1px solid #eaeaea;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #444;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 15px;
+            transition: border .3s;
+        }
+        
+        input:focus, textarea:focus {
+            border-color: #1a6dba;
+            outline: none;
+        }
+        
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        
+        .file-upload {
+            margin-top: 10px;
+            padding: 15px;
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            text-align: center;
+            background: #f9f9f9;
+            cursor: pointer;
+            transition: all .3s;
+        }
+        
+        .file-upload:hover {
+            border-color: #1a6dba;
+            background: #f0f7ff;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all .3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .primary-btn {
+            background: #1a6dba;
+            color: #fff;
+        }
+        
+        .primary-btn:hover {
+            background: #0d4d8c;
+        }
+        
+        .secondary-btn {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .secondary-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .print-btn {
+            background: #2b9348;
+            color: #fff;
+        }
+        
+        .print-btn:hover {
+            background: #23713b;
+        }
+        
+        .result-section {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .result-table th, .result-table td {
+            padding: 12px 15px;
+            text-align: center;
+            border: 1px solid #eaeaea;
+        }
+        
+        .result-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #444;
+        }
+        
+        .order-number {
+            font-weight: bold;
+            color: #1a6dba;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+        
+        .signature-area {
+            margin-top: 40px;
+            display: none;
+        }
+        
+        .signature-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        
+        .signature-item {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .project-info {
+            display: none;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .project-info p {
+            font-size: 16px;
+            margin: 4px 0;
+        }
+        
+        .status-bar {
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .status-ready {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .status-processing {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+        
+        .status-completed {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .search-box {
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .search-box input {
+            padding-left: 40px;
+        }
+        
+        .search-box:before {
+            content: "🔍";
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-item {
+            flex: 1;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a6dba;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .input-section {
+                border-right: none;
+                border-bottom: 1px solid #eaeaea;
+            }
+            
+            .buttons {
+                flex-direction: column;
+            }
+            
+            .result-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+            
+            .stats {
+                flex-direction: column;
+            }
+            
+            .signature-line {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+        
+        @media print {
+            body {
+                background: none;
+                padding: 0;
+                font-size: 14px;
+            }
+            
+            header {
+                background: none;
+                color: #000;
+                text-align: center;
+                padding: 15px 0;
+                margin-bottom: 10px;
+            }
+            
+            .input-section, .buttons, #exportBtn, #printBtn, .search-box, .action-buttons, .status-bar {
+                display: none;
+            }
+            
+            .project-info {
+                display: block;
+                margin-top: 10px;
+                border: 1px solid #ddd;
+                padding: 10px;
+                background: #f8f8f8;
+            }
+            
+            .container {
+                box-shadow: none;
+                border: none;
+                max-width: 100%;
+            }
+            
+            .result-table {
+                width: 100%;
+                border: 2px solid #000;
+                font-size: 14px;
+            }
+            
+            .result-table th, .result-table td {
+                border: 1px solid #000;
+                padding: 8px 10px;
+            }
+            
+            .result-table th {
+                background: #e0e0e0;
+            }
+            
+            .signature-area {
+                display: block;
+                margin-top: 40px;
+            }
+            
+            .result-section {
+                padding: 0;
+            }
+            
+            .order-number {
+                color: #000;
+            }
+            
+            .empty-state {
+                display: none;
+            }
+            
+            .stats {
+                display: flex;
+                flex-direction: row;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>投标人顺序随机抽取系统</h1>
+            <p class="subtitle">用于随机抽取投标人方案演示、项目经理陈述或谈判的先后顺序</p>
+        </header>
+        
+        <div class="content">
+            <div class="input-section">
+                <div class="form-group">
+                    <label for="projectName">项目名称</label>
+                    <input type="text" id="projectName" placeholder="请输入项目名称">
+                </div>
+                
+                <div class="form-group">
+                    <label for="tenderer">招标人</label>
+                    <input type="text" id="tenderer" placeholder="请输入招标人名称">
+                </div>
+                
+                <div class="form-group">
+                    <label for="agency">招标代理机构</label>
+                    <input type="text" id="agency" placeholder="请输入招标代理机构名称">
+                </div>
+                
+                <div class="form-group">
+                    <label for="bidderNames">投标人名称（每行一个）</label>
+                    <textarea id="bidderNames" placeholder="请输入投标人名称，每行一个"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>导入投标人名单（Excel格式）</label>
+                    <div class="file-upload" id="fileUpload">
+                        <i>📊</i>
+                        <p>点击或拖拽Excel文件到此处</p>
+                        <p id="fileName">未选择文件</p>
+                    </div>
+                    <input type="file" id="excelFile" accept=".xlsx, .xls" style="display:none;">
+                </div>
+                
+                <div class="buttons">
+                    <button class="primary-btn" id="startDraw">
+                        <span>🎲</span> 开始抽取
+                    </button>
+                    <button class="secondary-btn" id="resetBtn">
+                        <span>🔄</span> 重置
+                    </button>
+                </div>
+            </div>
+            
+            <div class="result-section">
+                <div class="result-header">
+                    <h2>抽取结果</h2>
+                    <div class="action-buttons">
+                        <button class="primary-btn" id="exportBtn">
+                            <span>📥</span> 导出结果
+                        </button>
+                        <button class="print-btn" id="printBtn">
+                            <span>🖨️</span> 打印结果
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="status-bar status-ready" id="statusBar">
+                    准备就绪，请填写项目信息并添加投标人
+                </div>
+                
+                <div class="stats" id="statsContainer" style="display: none;">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalBidders">0</div>
+                        <div class="stat-label">投标人总数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="currentOrder">0</div>
+                        <div class="stat-label">当前抽取顺序</div>
+                    </div>
+                </div>
+                
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索投标人...">
+                </div>
+                
+                <div class="project-info" id="projectInfo">
+                    <p><strong>项目名称：</strong><span id="infoProject"></span></p>
+                    <p><strong>招标人：</strong><span id="infoTenderer"></span></p>
+                    <p><strong>招标代理机构：</strong><span id="infoAgency"></span></p>
+                    <p><strong>抽取时间：</strong><span id="infoTime"></span></p>
+                </div>
+                
+                <div class="result-container">
+                    <table class="result-table" id="resultTable">
+                        <thead>
+                            <tr>
+                                <th width="15%">顺序号</th>
+                                <th width="70%">投标人名称</th>
+                                <th width="15%">备注</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultBody"></tbody>
+                    </table>
+                    
+                    <div class="empty-state" id="emptyState">
+                        📋 暂无抽取结果，请填写投标人信息并点击"开始抽取"
+                    </div>
+                    
+                    <div class="signature-area" id="signatureArea">
+                        <div class="signature-line">
+                            <div class="signature-item">
+                                招标人签字：______________________
+                            </div>
+                            <div class="signature-item">
+                                监督人签字：______________________
+                            </div>
+                        </div>
+                        <div class="signature-line">
+                            <div class="signature-item">
+                                招标代理机构签字：______________________
+                            </div>
+                            <div class="signature-item">
+                                抽取人签字：______________________
+                            </div>
+                        </div>
+                        <div class="signature-line">
+                            <div class="signature-item">
+                                日期：______________________
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 获取DOM元素
+            const fileUpload = document.getElementById('fileUpload');
+            const excelFile = document.getElementById('excelFile');
+            const fileName = document.getElementById('fileName');
+            const startDrawBtn = document.getElementById('startDraw');
+            const resetBtn = document.getElementById('resetBtn');
+            const exportBtn = document.getElementById('exportBtn');
+            const printBtn = document.getElementById('printBtn');
+            const resultBody = document.getElementById('resultBody');
+            const emptyState = document.getElementById('emptyState');
+            const signatureArea = document.getElementById('signatureArea');
+            const projectInfo = document.getElementById('projectInfo');
+            const statusBar = document.getElementById('statusBar');
+            const searchInput = document.getElementById('searchInput');
+            const statsContainer = document.getElementById('statsContainer');
+            const totalBidders = document.getElementById('totalBidders');
+            const currentOrder = document.getElementById('currentOrder');
+            
+            // 数据存储
+            let bidders = [];
+            let results = [];
+            
+            // 初始化事件监听
+            initEventListeners();
+            
+            function initEventListeners() {
+                // 文件上传相关事件
+                fileUpload.addEventListener('click', () => excelFile.click());
+                excelFile.addEventListener('change', handleFileChange);
+                fileUpload.addEventListener('dragover', handleDragOver);
+                fileUpload.addEventListener('dragleave', handleDragLeave);
+                fileUpload.addEventListener('drop', handleFileDrop);
+                
+                // 按钮点击事件
+                startDrawBtn.addEventListener('click', startDraw);
+                resetBtn.addEventListener('click', resetSystem);
+                exportBtn.addEventListener('click', exportResults);
+                printBtn.addEventListener('click', printResults);
+                
+                // 搜索功能
+                searchInput.addEventListener('input', filterResults);
+            }
+            
+            // 文件处理函数
+            function handleFileChange(e) {
+                if (e.target.files.length > 0) {
+                    fileName.textContent = e.target.files[0].name;
+                    readExcelFile(e.target.files[0]);
+                }
+            }
+            
+            function handleDragOver(e) {
+                e.preventDefault();
+                fileUpload.style.borderColor = '#1a6dba';
+                fileUpload.style.backgroundColor = '#f0f7ff';
+            }
+            
+            function handleDragLeave() {
+                fileUpload.style.borderColor = '#ccc';
+                fileUpload.style.backgroundColor = '#f9f9f9';
+            }
+            
+            function handleFileDrop(e) {
+                e.preventDefault();
+                fileUpload.style.borderColor = '#ccc';
+                fileUpload.style.backgroundColor = '#f9f9f9';
+                
+                if (e.dataTransfer.files.length > 0) {
+                    const file = e.dataTransfer.files[0];
+                    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                        fileName.textContent = file.name;
+                        readExcelFile(file);
+                    } else {
+                        alert('请上传Excel文件（.xlsx或.xls格式）');
+                    }
+                }
+            }
+            
+            function readExcelFile(file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        
+                        // 尝试多种可能的列名
+                        bidders = jsonData.map(row => {
+                            return row['投标人名称'] || row['投标人'] || row['名称'] || 
+                                   row['单位名称'] || row['公司名称'] || Object.values(row)[0];
+                        }).filter(name => name && name.trim() !== '');
+                        
+                        // 更新手动输入的投标人
+                        document.getElementById('bidderNames').value = bidders.join('\n');
+                        
+                        // 更新状态
+                        updateStatus(`已成功导入 ${bidders.length} 个投标人`, 'status-completed');
+                    } catch (error) {
+                        console.error('Excel解析错误:', error);
+                        alert('Excel文件解析失败，请检查文件格式');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    alert('文件读取失败，请重试');
+                };
+                
+                reader.readAsArrayBuffer(file);
+            }
+            
+            // 抽取功能
+            function startDraw() {
+                // 获取手动输入的投标人
+                const manualBidders = document.getElementById('bidderNames').value
+                    .split('\n')
+                    .map(name => name.trim())
+                    .filter(name => name !== '');
+                
+                // 合并数据
+                if (manualBidders.length > 0) {
+                    bidders = [...new Set([...bidders, ...manualBidders])];
+                }
+                
+                // 验证数据
+                if (bidders.length === 0) {
+                    alert('请先输入或导入投标人信息');
+                    return;
+                }
+                
+                if (bidders.length < 2) {
+                    alert('至少需要2个投标人才能进行抽取');
+                    return;
+                }
+                
+                // 更新状态
+                updateStatus(`正在抽取 ${bidders.length} 个投标人的顺序...`, 'status-processing');
+                
+                // 延迟显示结果，增加用户体验
+                setTimeout(() => {
+                    // 随机排序
+                    const shuffledBidders = shuffleArray([...bidders]);
+                    
+                    // 存储结果
+                    results = shuffledBidders.map((bidder, index) => ({
+                        order: index + 1,
+                        name: bidder,
+                        remarks: ''
+                    }));
+                    
+                    // 显示结果
+                    displayResults(results);
+                    
+                    // 更新状态
+                    updateStatus(`抽取完成，共 ${results.length} 个投标人`, 'status-completed');
+                }, 800);
+            }
+            
+            // Fisher-Yates 洗牌算法
+            function shuffleArray(array) {
+                const newArray = [...array];
+                for (let i = newArray.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+                }
+                return newArray;
+            }
+            
+            // 结果显示
+            function displayResults(resultsToShow) {
+                resultBody.innerHTML = '';
+                
+                if (resultsToShow.length === 0) {
+                    emptyState.style.display = 'block';
+                    signatureArea.style.display = 'none';
+                    statsContainer.style.display = 'none';
+                    return;
+                }
+                
+                emptyState.style.display = 'none';
+                signatureArea.style.display = 'block';
+                statsContainer.style.display = 'flex';
+                
+                // 更新统计信息
+                totalBidders.textContent = resultsToShow.length;
+                currentOrder.textContent = resultsToShow.length;
+                
+                // 更新项目信息
+                const project = document.getElementById('projectName').value || '未命名项目';
+                const tenderer = document.getElementById('tenderer').value || '未知招标人';
+                const agency = document.getElementById('agency').value || '未知招标代理机构';
+                const time = new Date().toLocaleString();
+                
+                document.getElementById('infoProject').textContent = project;
+                document.getElementById('infoTenderer').textContent = tenderer;
+                document.getElementById('infoAgency').textContent = agency;
+                document.getElementById('infoTime').textContent = time;
+                projectInfo.style.display = 'block';
+                
+                // 生成表格行
+                resultsToShow.forEach((result, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="order-number">${result.order}</td>
+                        <td>${result.name}</td>
+                        <td>${result.remarks}</td>
+                    `;
+                    resultBody.appendChild(row);
+                });
+            }
+            
+            // 搜索功能
+            function filterResults() {
+                const searchTerm = searchInput.value.trim().toLowerCase();
+                if (searchTerm === '') {
+                    displayResults(results);
+                } else {
+                    const filteredResults = results.filter(result => 
+                        result.name.toLowerCase().includes(searchTerm)
+                    );
+                    displayResults(filteredResults);
+                }
+            }
+            
+            // 重置系统
+            function resetSystem() {
+                if (confirm('确定要重置所有数据吗？此操作不可撤销。')) {
+                    document.getElementById('projectName').value = '';
+                    document.getElementById('tenderer').value = '';
+                    document.getElementById('agency').value = '';
+                    document.getElementById('bidderNames').value = '';
+                    excelFile.value = '';
+                    fileName.textContent = '未选择文件';
+                    searchInput.value = '';
+                    
+                    bidders = [];
+                    results = [];
+                    resultBody.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    signatureArea.style.display = 'none';
+                    projectInfo.style.display = 'none';
+                    statsContainer.style.display = 'none';
+                    
+                    updateStatus('系统已重置，请重新输入数据', 'status-ready');
+                }
+            }
+            
+            // 导出结果
+            function exportResults() {
+                if (results.length === 0) {
+                    alert('没有可导出的结果');
+                    return;
+                }
+                
+                const project = document.getElementById('projectName').value || '未命名项目';
+                const tenderer = document.getElementById('tenderer').value || '未知招标人';
+                const agency = document.getElementById('agency').value || '未知招标代理机构';
+                
+                // 准备数据
+                const data = [
+                    ['项目名称', project],
+                    ['招标人', tenderer],
+                    ['招标代理机构', agency],
+                    ['抽取时间', new Date().toLocaleString()],
+                    [],
+                    ['顺序号', '投标人名称', '备注']
+                ];
+                
+                // 添加结果行
+                results.forEach(result => {
+                    data.push([result.order, result.name, result.remarks]);
+                });
+                
+                data.push([]);
+                data.push(['招标人签字：', '', '']);
+                data.push(['监督人签字：', '', '']);
+                data.push(['招标代理机构签字：', '', '']);
+                data.push(['抽取人签字：', '', '']);
+                data.push(['日期：', '', '']);
+                
+                // 创建工作簿并导出
+                try {
+                    const ws = XLSX.utils.aoa_to_sheet(data);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, '抽取结果');
+                    XLSX.writeFile(wb, `${project}_抽取结果_${new Date().toISOString().slice(0, 10)}.xlsx`);
+                    updateStatus('结果已成功导出', 'status-completed');
+                } catch (error) {
+                    console.error('导出错误:', error);
+                    alert('导出失败，请重试');
+                }
+            }
+            
+            // 打印结果
+            function printResults() {
+                if (results.length === 0) {
+                    alert('没有可打印的结果');
+                    return;
+                }
+                
+                window.print();
+            }
+            
+            // 更新状态栏
+            function updateStatus(message, statusClass) {
+                statusBar.textContent = message;
+                statusBar.className = `status-bar ${statusClass}`;
+            }
+        });
+    </script>
+</body>
+</html>
